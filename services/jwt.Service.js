@@ -3,7 +3,7 @@ require('dotenv').config();
 const { StatusCodes } = require('http-status-codes');
 
 module.exports = function (req, res, next) {
-  const token = req.header('auth-token');
+  const token = req.header('authorization');
   if (!token) return res.status(StatusCodes.UNAUTHORIZED).send('Access Denied');
 
   try {

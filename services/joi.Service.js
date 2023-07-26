@@ -3,7 +3,7 @@ const Joi = require('@hapi/joi');
 //Register validate
 const registerValidator = (data) => {
   const schema = Joi.object().keys({
-    name: Joi.string().trim().min(4).max(30).required(),
+    username: Joi.string().trim().min(4).max(30).required(),
     email: Joi.string()
       .trim()
       .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)

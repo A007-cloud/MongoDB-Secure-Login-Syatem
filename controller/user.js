@@ -8,12 +8,13 @@ const { StatusCodes } = require('http-status-codes');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 
+// USER REGISTER or SIGNUP
 const registerUser = async (req, res) => {
   //lets validate the data before sending
   const { error } = registerValidator(req.body);
   if (error) {
     return res.status(StatusCodes.BAD_REQUEST).json({
-      name: 'provide your fullname as per ID',
+      username: 'provide your username',
       email: 'provide a valid email address',
       password:
         'provide password of six character contain atleast one number and one special character',
@@ -30,7 +31,7 @@ const registerUser = async (req, res) => {
 
   //create a new user
   const user = new User({
-    name: req.body.name,
+    username: req.body.username,
     email: req.body.email,
     password: hashPassword,
   });
@@ -46,12 +47,13 @@ const registerUser = async (req, res) => {
   }
 };
 
+// USER LOGIN
 const logInUser = async (req, res) => {
-  //lets validate the data before sending
+  // lets validate the data before sending
   const { error } = loginValidator(req.body);
   if (error) {
     return res.status(StatusCodes.BAD_REQUEST).json({
-      error: error.name,
+      error: error.username,
       subject: error.details[0].path,
     });
   }
@@ -66,14 +68,29 @@ const logInUser = async (req, res) => {
   if (!validPassword)
     return res.status(StatusCodes.BAD_REQUEST).send('password incorrect');
 
-  // res.send('Logged In..!');
-
   try {
     const token = await jwt.sign({ _id: user._id }, process.env.TOKEN_SECRET);
-    res.header('auth-token', token).send({
+
+    // Validation to insert token in database
+    let oldTokens = user.tokens || [];
+
+    if (oldTokens.length) {
+      oldTokens = oldTokens.filter((t) => {
+        const timeDiff = (Date.now - parseInt(t.signedAt)) / 1000;
+        if (timeDiff < 86400) {
+          return t;
+        }
+      });
+    }
+
+    await User.findOneAndUpdate(user._id, {
+      tokens: [...oldTokens, { token, signedAt: Date.now().toString() }],
+    });
+
+    res.header('authorization', token).send({
       success: true,
       data: {
-        name: user.name,
+        username: user.username,
         email: user.email,
         token: token,
       },
@@ -84,4 +101,23 @@ const logInUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, logInUser };
+//USER LOGOUT
+
+const logOutUser = async (req, res) => {
+  if (req.headers && req.headers.authorization) {
+    const token = req.headers.authorization.split(' ');
+    if (!token) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid authorization',
+      });
+    }
+    await User.findByIdAndUpdate(req.user._id, { $unset: { tokens: 1 } });
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'user logout',
+    });
+  }
+};
+
+module.exports = { registerUser, logInUser, logOutUser };

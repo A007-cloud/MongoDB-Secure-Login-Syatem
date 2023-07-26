@@ -15,6 +15,9 @@ app.use(express.json());
 app.use('/api/v1/user', authRoute);
 app.use('/api/v1/users', subscriberRoute);
 
+// Mount routes
+// app.use('/api', tweetRoutes);
+
 app.use(notFoundMiddleware);
 
 const start = async () => {
